@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import EmptyState from './components/feedback/EmptyState.vue';
 import ErrorState from './components/feedback/ErrorState.vue';
 import LoadingScreen from './components/feedback/LoadingScreen.vue';
@@ -14,9 +14,13 @@ import { usePharmacySearch } from './composables/usePharmacySearch';
 import { provinces } from './data/mockPharmacies';
 import type { Language } from './i18n';
 import { messages } from './i18n';
+import { isMockPharmacyMode } from './services/pharmacyService';
 import type { ThemeMode, ViewMode } from './types/ui';
 
 type AppScreen = 'permission' | 'fallback' | 'loading' | 'results' | 'empty' | 'error';
+
+const shouldAutoLoadDemoData =
+  isMockPharmacyMode && import.meta.env.VITE_DEMO_AUTO_LOAD !== 'false';
 
 const language = ref<Language>('tr');
 const theme = ref<ThemeMode>('light');
@@ -70,6 +74,10 @@ const locationNotice = computed(() => {
 });
 
 const resultContextLabel = computed(() => {
+  if (search.searchMode.value === 'demo') {
+    return t.value.demoContext;
+  }
+
   if (search.searchMode.value === 'nearby') {
     return `${search.pharmacies.value.length} ${t.value.found} - ${search.radiusKm.value} km ${t.value.radiusSummary}`;
   }
@@ -111,6 +119,13 @@ async function runDistrictSearch() {
   finishSearch();
 }
 
+async function runDemoSearch() {
+  retryAction.value = runDemoSearch;
+  showLoading(screen.value);
+  await search.loadDemoData();
+  finishSearch();
+}
+
 function goFallback() {
   previousScreen.value = screen.value;
   screen.value = 'fallback';
@@ -137,6 +152,12 @@ watch(
   },
   { immediate: true },
 );
+
+onMounted(() => {
+  if (shouldAutoLoadDemoData) {
+    void runDemoSearch();
+  }
+});
 </script>
 
 <template>

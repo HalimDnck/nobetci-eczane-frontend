@@ -19,6 +19,20 @@ describe('pharmacyService', () => {
     expect(items.some((item) => item.status === 'closed')).toBe(true);
   });
 
+  it('falls back to demo pharmacies when mock nearby search would be empty', async () => {
+    const items = await getNearbyPharmacies({ lat: 39.9208, lng: 32.8541 }, 1);
+
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.some((item) => item.source === 'mock')).toBe(true);
+  });
+
+  it('falls back to demo pharmacies when mock district search has no match', async () => {
+    const items = await searchPharmacies({ province: 'Ankara', district: 'Cankaya' });
+
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.some((item) => item.address.includes('Kadikoy'))).toBe(true);
+  });
+
   it('keeps closed pharmacies behind available pharmacies', async () => {
     const items = await searchPharmacies({ province: 'Istanbul', district: 'Kadikoy' });
     const lastItem = items[items.length - 1];

@@ -1,6 +1,10 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue';
 import { districtsByProvince } from '../data/mockPharmacies';
-import { getNearbyPharmacies, searchPharmacies } from '../services/pharmacyService';
+import {
+  getDemoPharmacies,
+  getNearbyPharmacies,
+  searchPharmacies,
+} from '../services/pharmacyService';
 import type { Coordinates, Pharmacy } from '../types/pharmacy';
 import type { RadiusKm, SearchMode } from '../types/ui';
 
@@ -83,6 +87,19 @@ export function usePharmacySearch({
     }
   }
 
+  async function loadDemoData() {
+    isLoading.value = true;
+    pageError.value = '';
+
+    try {
+      pharmacies.value = getDemoPharmacies();
+      selectedId.value = pharmacies.value[0]?.id ?? '';
+      searchMode.value = 'demo';
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   async function loadWithLocation(requestLocation: () => Promise<Coordinates | null>) {
     isLoading.value = true;
     pageError.value = '';
@@ -129,6 +146,7 @@ export function usePharmacySearch({
     district,
     isLoading,
     loadByDistrict,
+    loadDemoData,
     loadNearby,
     loadWithLocation,
     pageError,

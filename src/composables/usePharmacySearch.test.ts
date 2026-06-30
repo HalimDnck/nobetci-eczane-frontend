@@ -37,4 +37,18 @@ describe('usePharmacySearch', () => {
 
     expect(search.pageError.value).toBe('Backend validation failed.');
   });
+
+  it('loads demo pharmacies for temporary mock previews', async () => {
+    const search = usePharmacySearch({
+      coordinates: ref(null),
+      loadErrorMessage: computed(() => 'Pharmacies could not be loaded.'),
+      searchErrorMessage: computed(() => 'District search could not be completed.'),
+    });
+
+    await search.loadDemoData();
+
+    expect(search.searchMode.value).toBe('demo');
+    expect(search.pharmacies.value.length).toBeGreaterThan(0);
+    expect(search.selectedId.value).toBe(search.pharmacies.value[0]?.id);
+  });
 });

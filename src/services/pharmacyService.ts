@@ -3,7 +3,12 @@ import type { Coordinates, Pharmacy, PharmacyResponse, SearchLocation } from '..
 import { isClosedPharmacy, normalizePharmacyStatus } from '../utils/pharmacyStatus';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false';
+export const isMockPharmacyMode = import.meta.env.VITE_USE_MOCKS !== 'false';
+
+const DEMO_COORDINATES: Coordinates = {
+  lat: 40.987,
+  lng: 29.024,
+};
 
 function buildDirectionsUrl(latitude: number, longitude: number) {
   return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
@@ -57,7 +62,7 @@ export async function getNearbyPharmacies(
   coordinates: Coordinates,
   radiusKm = 10,
 ): Promise<Pharmacy[]> {
-  if (!USE_MOCKS) {
+  if (!isMockPharmacyMode) {
     const params = new URLSearchParams({
       lat: String(coordinates.lat),
       lng: String(coordinates.lng),
@@ -66,7 +71,7 @@ export async function getNearbyPharmacies(
     return requestPharmacies(`/api/pharmacies/nearby?${params.toString()}`);
   }
 
-  return mockPharmacies
+  const nearbyMatches = mockPharmacies
     .map((pharmacy) => {
       const calculatedDistance = distanceKm(coordinates, {
         lat: pharmacy.latitude,
@@ -80,10 +85,12 @@ export async function getNearbyPharmacies(
     })
     .filter((pharmacy) => pharmacy.distanceKm <= radiusKm)
     .sort(sortByStatusAndDistance);
+
+  return nearbyMatches.length > 0 ? nearbyMatches : getDemoPharmacies();
 }
 
 export async function searchPharmacies(location: SearchLocation): Promise<Pharmacy[]> {
-  if (!USE_MOCKS) {
+  if (!isMockPharmacyMode) {
     const params = new URLSearchParams({
       province: location.province,
       district: location.district,
@@ -92,8 +99,24 @@ export async function searchPharmacies(location: SearchLocation): Promise<Pharma
   }
 
   const districtMatch = location.district.toLocaleLowerCase('tr-TR');
-  return mockPharmacies
+  const districtMatches = mockPharmacies
     .filter((pharmacy) => pharmacy.address.toLocaleLowerCase('tr-TR').includes(districtMatch))
     .map(normalizePharmacy)
+    .sort(sortByStatusAndDistance);
+
+  return districtMatches.length > 0 ? districtMatches : getDemoPharmacies();
+}
+
+export function getDemoPharmacies(): Pharmacy[] {
+  return mockPharmacies
+    .map((pharmacy) => ({
+      ...normalizePharmacy(pharmacy),
+      distanceKm: Number(
+        distanceKm(DEMO_COORDINATES, {
+          lat: pharmacy.latitude,
+          lng: pharmacy.longitude,
+        }).toFixed(1),
+      ),
+    }))
     .sort(sortByStatusAndDistance);
 }
